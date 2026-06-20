@@ -12,6 +12,8 @@ import sys
 import requests
 import pandas as pd
 import numpy as np
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from bot_config import (
     TELEGRAM_TOKEN, CHAT_ID, SYMBOLS, TRADE_LOG_FILE,
@@ -777,13 +779,29 @@ class SignalBot:
                 print(f"\n[ERROR] Loop crash: {e}", flush=True)
                 time.sleep(15)
 
+class DummyHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b"Bot is alive!")
+    def log_message(self, format, *args):
+        pass # Suppress HTTP logs
+
+def keep_alive():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(('0.0.0.0', port), DummyHandler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    print(f"[*] Dummy web server started on port {port}", flush=True)
+
 if __name__ == "__main__":
     try:
         print("=" * 50, flush=True)
         print("  BTC Multi-TF Wick Anomaly Signal Bot", flush=True)
         print("=" * 50, flush=True)
+        keep_alive()
         bot = SignalBot()
         bot.run()
     except Exception as e:
         print(f"FATAL ERROR: {e}", flush=True)
-        input("Press Enter to exit...")
+        # removed input() to not block in cloud environment

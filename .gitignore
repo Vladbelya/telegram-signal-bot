@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.csv
+*.html
+*.png
+trade_log.json
